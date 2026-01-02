@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raid-Helper Event Viewer</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      border-radius: 10px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+      padding: 40px;
+      max-width: 800px;
+      width: 100%;
+    }
+
+    h1 {
+      color: #333;
+      margin-bottom: 30px;
+      text-align: center;
+    }
+
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    label {
+      display: block;
+      margin-bottom: 8px;
+      color: #555;
+      font-weight: 500;
+    }
+
+    input[type="text"] {
+      width: 100%;
+      padding: 12px;
+      border: 2px solid #e0e0e0;
+      border-radius: 5px;
+      font-size: 16px;
+      transition: border-color 0.3s;
+    }
+
+    input[type="text"]:focus {
+      outline: none;
+      border-color: #667eea;
+    }
+
+    button {
+      width: 100%;
+      padding: 12px;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      border: none;
+      border-radius: 5px;
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #loading {
+      display: none;
+      text-align: center;
+      margin-top: 20px;
+      color: #667eea;
+    }
+
+    #result {
+      margin-top: 30px;
+      display: none;
+    }
+
+    #error {
+      background-color: #fee;
+      border: 1px solid #fcc;
+      color: #c33;
+      padding: 15px;
+      border-radius: 5px;
+      margin-top: 20px;
+      display: none;
+    }
+
+    pre {
+      background-color: #f5f5f5;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      padding: 15px;
+      overflow-x: auto;
+      max-height: 500px;
+      overflow-y: auto;
+    }
+
+    code {
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      line-height: 1.5;
+    }
+
+    .person-panel {
+      background-color: #f9f9f9;
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+
+    .person-panel h3 {
+      color: #667eea;
+      margin-bottom: 15px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid #667eea;
+      cursor: pointer;
+      user-select: none;
+      position: relative;
+      transition: color 0.2s;
+    }
+
+    .person-panel h3:hover {
+      color: #5568d3;
+    }
+
+    .person-panel h3::after {
+      content: ' 📋';
+      font-size: 0.8em;
+      opacity: 0.6;
+    }
+
+    .person-panel h3:hover::after {
+      opacity: 1;
+    }
+
+    .copy-feedback {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background-color: #4caf50;
+      color: white;
+      padding: 15px 20px;
+      border-radius: 5px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      z-index: 1000;
+      animation: slideIn 0.3s ease-out;
+    }
+
+    @keyframes slideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .person-panel pre {
+      background-color: white;
+      margin-top: 10px;
+    }
+
+    #resultsContainer {
+      margin-top: 30px;
+    }
+
+    #unmatchedRaidsContainer {
+      margin-top: 30px;
+      display: none;
+    }
+
+    .unmatched-raid-item {
+      background-color: #fff3cd;
+      border: 2px solid #ffc107;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 15px;
+    }
+
+    .unmatched-raid-item h3 {
+      color: #856404;
+      margin-bottom: 15px;
+    }
+
+    .raid-option {
+      margin: 10px 0;
+    }
+
+    .raid-option label {
+      display: flex;
+      align-items: center;
+      cursor: pointer;
+      margin-bottom: 5px;
+    }
+
+    .raid-option input[type="radio"] {
+      margin-right: 10px;
+    }
+
+    .raid-option select,
+    .raid-option input[type="text"] {
+      margin-left: 25px;
+      padding: 8px;
+      border: 2px solid #e0e0e0;
+      border-radius: 5px;
+      margin-top: 5px;
+    }
+
+    .raid-option input[type="text"] {
+      width: 200px;
+    }
+
+    #processRaidsBtn {
+      margin-top: 20px;
+      background: linear-gradient(135deg, #ffc107 0%, #ff9800 100%);
+    }
+
+    .info-panel {
+      background: linear-gradient(135deg, #e3f2fd 0%, #e8eaf6 100%);
+      border: 2px solid #667eea;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 30px;
+    }
+
+    .info-panel h2 {
+      color: #667eea;
+      margin-bottom: 15px;
+      font-size: 1.3em;
+    }
+
+    .info-panel h3 {
+      color: #5568d3;
+      margin-top: 15px;
+      margin-bottom: 10px;
+      font-size: 1.1em;
+    }
+
+    .info-panel ol {
+      margin-left: 20px;
+      margin-bottom: 15px;
+      color: #333;
+    }
+
+    .info-panel li {
+      margin-bottom: 8px;
+      line-height: 1.6;
+    }
+
+    .info-panel p {
+      color: #333;
+      line-height: 1.6;
+      margin-bottom: 10px;
+    }
+
+    .info-panel code {
+      background-color: white;
+      padding: 2px 6px;
+      border-radius: 3px;
+      font-family: 'Courier New', monospace;
+      color: #667eea;
+      border: 1px solid #667eea;
+    }
+
+    .info-panel a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 600;
+      transition: color 0.2s;
+    }
+
+    .info-panel a:hover {
+      color: #5568d3;
+      text-decoration: underline;
+    }
+
+    .github-link {
+      display: inline-block;
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      text-decoration: none;
+      font-weight: 600;
+      margin-top: 10px;
+      transition: transform 0.2s;
+    }
+
+    .github-link:hover {
+      transform: translateY(-2px);
+      color: white;
+      text-decoration: none;
+    }
+
+    .collapse-toggle {
+      cursor: pointer;
+      user-select: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .collapse-toggle::after {
+      content: '▼';
+      font-size: 0.8em;
+      transition: transform 0.3s;
+    }
+
+    .collapse-toggle.collapsed::after {
+      transform: rotate(-90deg);
+    }
+
+    .collapsible-content {
+      margin-top: 15px;
+      overflow: hidden;
+      transition: max-height 0.3s ease-out;
+    }
+
+    .collapsible-content.collapsed {
+      max-height: 0;
+      margin-top: 0;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Raid-Helper Event Viewer</h1>
+
+    <div class="info-panel">
+      <h2 class="collapse-toggle" id="infoToggle">How to Use This Tool</h2>
+      <div class="collapsible-content" id="infoContent">
+        <h3>Step 1: Get Your Raid-Helper API Key</h3>
+        <ol>
+          <li>Open Discord and send a direct message to the <strong>Raid-Helper bot</strong></li>
+          <li>If you don't have an API key: send <code>/usersettings apikey refresh</code></li>
+          <li>If you already have a key: send <code>/usersettings apikey show</code></li>
+          <li>Copy your API key for use below</li>
+        </ol>
+
+        <h3>Step 2: Retrieve Your Raid Data</h3>
+        <ol>
+          <li>Enter your API key in the form below and click "Get Events"</li>
+          <li>Your raid signups will be displayed grouped by character name</li>
+          <li><strong>Click on a character's name</strong> to copy their raid list to clipboard</li>
+        </ol>
+
+        <h3>Step 3: Import Into WoW Addon</h3>
+        <ol>
+          <li>Download the <strong>Raid Tracker</strong> addon from the link below</li>
+          <li>In WoW, click the minimap button or type <code>/rt</code></li>
+          <li>Click "Import" and paste the copied data</li>
+          <li>Your raids will appear with countdown timers!</li>
+        </ol>
+
+        <p style="margin-top: 20px;">
+          <a href="https://github.com/JDreh/raid-tracker-website" class="github-link" target="_blank">
+            Download Raid Tracker Addon from GitHub
+          </a>
+        </p>
+        <p style="margin-top: 10px; font-size: 0.9em; color: #666;">
+          <em>The addon is currently under review for CurseForge. In the meantime, download it from GitHub and install manually.</em>
+        </p>
+      </div>
+    </div>
+
+    <form id="apiForm">
+      <div class="form-group">
+        <label for="apiKey">Enter your Raid-Helper API Key:</label>
+        <input
+          type="text"
+          id="apiKey"
+          name="apiKey"
+          placeholder="Your API key"
+          required
+        >
+      </div>
+      <button type="submit" id="submitBtn">Get Events</button>
+    </form>
+
+    <div id="loading">
+      <p>Loading events...</p>
+    </div>
+
+    <div id="error"></div>
+
+    <div id="unmatchedRaidsContainer">
+      <h2>Unmatched Raids Found</h2>
+      <p>The following raids don't match known raid names. Please choose what to do with each:</p>
+      <div id="unmatchedRaidsList"></div>
+      <button id="processRaidsBtn">Continue</button>
+    </div>
+
+    <div id="resultsContainer"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('apiForm');
+    const loading = document.getElementById('loading');
+    const resultsContainer = document.getElementById('resultsContainer');
+    const unmatchedRaidsContainer = document.getElementById('unmatchedRaidsContainer');
+    const unmatchedRaidsList = document.getElementById('unmatchedRaidsList');
+    const processRaidsBtn = document.getElementById('processRaidsBtn');
+    const error = document.getElementById('error');
+    const submitBtn = document.getElementById('submitBtn');
+
+    let currentData = null;
+
+    // Collapsible info panel
+    const infoToggle = document.getElementById('infoToggle');
+    const infoContent = document.getElementById('infoContent');
+
+    infoToggle.addEventListener('click', () => {
+      infoToggle.classList.toggle('collapsed');
+      infoContent.classList.toggle('collapsed');
+    });
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const apiKey = document.getElementById('apiKey').value.trim();
+
+      if (!apiKey) {
+        showError('Please enter an API key');
+        return;
+      }
+
+      loading.style.display = 'block';
+      resultsContainer.innerHTML = '';
+      unmatchedRaidsContainer.style.display = 'none';
+      error.style.display = 'none';
+      submitBtn.disabled = true;
+
+      try {
+        const response = await fetch('/raidhelper/api/events', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ apiKey }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Failed to fetch events');
+        }
+
+        currentData = data;
+
+        if (data.unmatchedRaids && data.unmatchedRaids.length > 0) {
+          showUnmatchedRaidsUI(data.unmatchedRaids, data.knownRaids);
+        } else {
+          displayResults(data.eventsData);
+        }
+
+      } catch (err) {
+        showError(err.message);
+      } finally {
+        loading.style.display = 'none';
+        submitBtn.disabled = false;
+      }
+    });
+
+    function showUnmatchedRaidsUI(unmatchedRaids, knownRaids) {
+      unmatchedRaidsList.innerHTML = '';
+
+      unmatchedRaids.forEach((raidName, index) => {
+        const item = document.createElement('div');
+        item.className = 'unmatched-raid-item';
+
+        const header = document.createElement('h3');
+        header.textContent = `"${raidName}"`;
+
+        const removeOption = document.createElement('div');
+        removeOption.className = 'raid-option';
+        removeOption.innerHTML = `
+          <label>
+            <input type="radio" name="raid_${index}" value="remove" checked>
+            Remove from results
+          </label>
+        `;
+
+        const associateOption = document.createElement('div');
+        associateOption.className = 'raid-option';
+        const selectId = `select_${index}`;
+        const selectOptions = knownRaids.map(r => `<option value="${r}">${r}</option>`).join('');
+        associateOption.innerHTML = `
+          <label>
+            <input type="radio" name="raid_${index}" value="associate">
+            Associate with existing raid
+          </label>
+          <select id="${selectId}" disabled>
+            ${selectOptions}
+          </select>
+        `;
+
+        const customOption = document.createElement('div');
+        customOption.className = 'raid-option';
+        const inputId = `custom_${index}`;
+        customOption.innerHTML = `
+          <label>
+            <input type="radio" name="raid_${index}" value="custom">
+            Use custom name
+          </label>
+          <input type="text" id="${inputId}" placeholder="Enter custom name" disabled>
+        `;
+
+        item.appendChild(header);
+        item.appendChild(removeOption);
+        item.appendChild(associateOption);
+        item.appendChild(customOption);
+        unmatchedRaidsList.appendChild(item);
+
+        // Enable/disable inputs based on radio selection
+        const radios = item.querySelectorAll('input[type="radio"]');
+        radios.forEach(radio => {
+          radio.addEventListener('change', () => {
+            document.getElementById(selectId).disabled = radio.value !== 'associate';
+            document.getElementById(inputId).disabled = radio.value !== 'custom';
+          });
+        });
+      });
+
+      unmatchedRaidsContainer.style.display = 'block';
+    }
+
+    processRaidsBtn.addEventListener('click', () => {
+      const raidMappings = {};
+
+      currentData.unmatchedRaids.forEach((raidName, index) => {
+        const selected = document.querySelector(`input[name="raid_${index}"]:checked`);
+
+        if (selected.value === 'remove') {
+          raidMappings[raidName] = null;
+        } else if (selected.value === 'associate') {
+          const selectValue = document.getElementById(`select_${index}`).value;
+          raidMappings[raidName] = selectValue;
+        } else if (selected.value === 'custom') {
+          const customValue = document.getElementById(`custom_${index}`).value.trim();
+          raidMappings[raidName] = customValue || raidName;
+        }
+      });
+
+      unmatchedRaidsContainer.style.display = 'none';
+      displayResults(currentData.eventsData, raidMappings);
+    });
+
+    function displayResults(eventsData, raidMappings = {}) {
+      const groupedByName = {};
+
+      eventsData.forEach(event => {
+        let raidTitle = event.title;
+
+        // Apply mapping if exists
+        if (raidMappings.hasOwnProperty(event.title)) {
+          if (raidMappings[event.title] === null) {
+            return; // Skip this event (removed)
+          }
+          raidTitle = raidMappings[event.title];
+        }
+
+        const playerName = event.playerName;
+
+        if (!groupedByName[playerName]) {
+          groupedByName[playerName] = [];
+        }
+
+        groupedByName[playerName].push(`${raidTitle},${event.startTime},${playerName}`);
+      });
+
+      if (Object.keys(groupedByName).length === 0) {
+        resultsContainer.innerHTML = '<p>No events with signups found</p>';
+        return;
+      }
+
+      displayGroupedData(groupedByName);
+    }
+
+    function displayGroupedData(groupedData) {
+      resultsContainer.innerHTML = '';
+      const sortedNames = Object.keys(groupedData).sort();
+
+      sortedNames.forEach(name => {
+        const panel = document.createElement('div');
+        panel.className = 'person-panel';
+
+        const header = document.createElement('h3');
+        header.textContent = name;
+        header.title = 'Click to copy raid list to clipboard';
+
+        const pre = document.createElement('pre');
+        const code = document.createElement('code');
+        const raidList = groupedData[name].join('\n');
+        code.textContent = raidList;
+
+        // Add click event to copy to clipboard
+        header.addEventListener('click', async () => {
+          try {
+            await navigator.clipboard.writeText(raidList);
+            showCopyFeedback(name);
+          } catch (err) {
+            console.error('Failed to copy:', err);
+            showCopyFeedback(name, true);
+          }
+        });
+
+        pre.appendChild(code);
+        panel.appendChild(header);
+        panel.appendChild(pre);
+        resultsContainer.appendChild(panel);
+      });
+    }
+
+    function showCopyFeedback(name, isError = false) {
+      const feedback = document.createElement('div');
+      feedback.className = 'copy-feedback';
+      feedback.style.backgroundColor = isError ? '#f44336' : '#4caf50';
+      feedback.textContent = isError
+        ? `Failed to copy ${name}'s raids`
+        : `Copied ${name}'s raids to clipboard!`;
+
+      document.body.appendChild(feedback);
+
+      setTimeout(() => {
+        feedback.remove();
+      }, 2000);
+    }
+
+    function showError(message) {
+      error.textContent = 'Error: ' + message;
+      error.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

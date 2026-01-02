@@ -1,0 +1,23 @@
+# Node modules
+node_modules/
+
+# npm
+npm-debug.log*
+package-lock.json
+
+# Environment variables
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Claude
+.claude/

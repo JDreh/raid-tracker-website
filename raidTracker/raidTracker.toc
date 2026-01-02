@@ -1,0 +1,11 @@
+## Interface: 11508
+## Title: Raid Tracker
+## Notes: Tracks raid helper events
+## Author: Jake
+## Version: 1.0.0
+## RequiredDeps:
+## X-Curse-Project-ID: 999999
+## SavedVariables:
+## SavedVariablesPerCharacter: RaidDB
+
+raidTracker.lua
